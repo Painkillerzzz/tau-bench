@@ -21,9 +21,13 @@ def run(config: RunConfig) -> List[EnvRunResult]:
     assert config.env in ["retail", "airline"], "Only retail and airline envs are supported"
     assert config.model_provider in provider_list, "Invalid model provider"
     assert config.user_model_provider in provider_list, "Invalid user model provider"
-    assert config.agent_strategy in ["tool-calling", "act", "react", "few-shot"], "Invalid agent strategy"
+    assert config.agent_strategy in ["tool-calling", "tool-calling-modular", "tool-calling-best-of-n", "tool-calling-tree-search", "act", "react", "few-shot"], "Invalid agent strategy"
     assert config.task_split in ["train", "test", "dev"], "Invalid task split"
     assert config.user_strategy in [item.value for item in UserStrategy], "Invalid user strategy"
+    assert config.best_of_n_criterion in [
+        "perplexity",
+        "self_certainty",
+    ], "Invalid best of n criterion"
 
     random.seed(config.seed)
     time_str = datetime.now().strftime("%m%d%H%M%S")
@@ -85,6 +89,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
                     info=res.info,
                     traj=res.messages,
                     trial=i,
+                    cost = res.total_cost,
                 )
             except Exception as e:
                 result = EnvRunResult(
@@ -93,6 +98,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
                     info={"error": str(e), "traceback": traceback.format_exc()},
                     traj=[],
                     trial=i,
+                    cost=0.0,
                 )
             print(
                 "✅" if result.reward == 1 else "❌",
@@ -134,6 +140,65 @@ def agent_factory(
             model=config.model,
             provider=config.model_provider,
             temperature=config.temperature,
+        )
+    if config.agent_strategy == "tool-calling-modular":
+        # native tool calling
+        from tau_bench.agents.tool_calling_modular_agent import ToolCallingModularAgent
+
+        modules_info = {
+            "planner": {
+                "model": config.model,
+                "provider": config.model_provider,
+                "temperature": config.temperature,
+            },
+            "router": {
+                "model": config.model,
+                "provider": config.model_provider,
+                "temperature": config.temperature,
+            },
+            "rethinker": {
+                "model": config.model,
+                "provider": config.model_provider,
+                "temperature": config.temperature,
+            },
+            "speaker": {
+                "model": config.model,
+                "provider": config.model_provider,
+                "temperature": config.temperature,
+            },
+        }
+        return ToolCallingModularAgent(
+            tools_info=tools_info,
+            wiki=wiki,
+            modules_info=modules_info,
+        )
+    if config.agent_strategy == "tool-calling-best-of-n":
+        # tool calling with best of n
+        from tau_bench.agents.tool_calling_best_of_n_agent import ToolCallingBestOfNAgent
+
+        return ToolCallingBestOfNAgent(
+            tools_info=tools_info,
+            wiki=wiki,
+            model=config.model,
+            provider=config.model_provider,
+            temperature=config.temperature,
+            n=config.n,
+            top_logprobs=config.top_logprobs,
+            best_of_n_criterion=config.best_of_n_criterion,
+        )
+    if config.agent_strategy == "tool-calling-tree-search":
+        # tool calling with tree search
+        from tau_bench.agents.tool_calling_tree_search_agent import ToolCallingTreeSearchAgent
+
+        return ToolCallingTreeSearchAgent(
+            tools_info=tools_info,
+            wiki=wiki,
+            model=config.model,
+            provider=config.model_provider,
+            temperature=config.temperature,
+            max_w=config.n,
+            top_logprobs=config.top_logprobs,
+            best_of_n_criterion=config.best_of_n_criterion,
         )
     elif config.agent_strategy == "act":
         # `act` from https://arxiv.org/abs/2210.03629
@@ -184,6 +249,8 @@ def display_metrics(results: List[EnvRunResult]) -> None:
     num_trials = len(set([r.trial for r in results]))
     rewards = [r.reward for r in results]
     avg_reward = sum(rewards) / len(rewards)
+    real_cost_list = [r.cost for r in results if r.cost is not None]
+    avg_cost = sum(real_cost_list) / len(real_cost_list) if real_cost_list else 0
     # c from https://arxiv.org/pdf/2406.12045
     c_per_task_id: dict[int, int] = {}
     for result in results:
@@ -198,6 +265,7 @@ def display_metrics(results: List[EnvRunResult]) -> None:
             sum_task_pass_hat_k += comb(c, k) / comb(num_trials, k)
         pass_hat_ks[k] = sum_task_pass_hat_k / len(c_per_task_id)
     print(f"🏆 Average reward: {avg_reward}")
+    print(f"💰 Average cost: {avg_cost}")
     print("📈 Pass^k")
     for k, pass_hat_k in pass_hat_ks.items():
         print(f"  k={k}: {pass_hat_k}")

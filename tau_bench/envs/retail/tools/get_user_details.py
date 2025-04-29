@@ -25,7 +25,7 @@ class GetUserDetails(Tool):
                     "properties": {
                         "user_id": {
                             "type": "string",
-                            "description": "The user id, such as 'sara_doe_496'.",
+                            "description": "The user id.",
                         },
                     },
                     "required": ["user_id"],

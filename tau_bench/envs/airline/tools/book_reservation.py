@@ -115,7 +115,7 @@ class BookReservation(Tool):
                     "properties": {
                         "user_id": {
                             "type": "string",
-                            "description": "The ID of the user to book the reservation, such as 'sara_doe_496'.",
+                            "description": "The ID of the user to book the reservation.",
                         },
                         "origin": {
                             "type": "string",

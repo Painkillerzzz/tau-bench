@@ -40,7 +40,7 @@ def parse_args() -> RunConfig:
         "--agent-strategy",
         type=str,
         default="tool-calling",
-        choices=["tool-calling", "act", "react", "few-shot"],
+        choices=["tool-calling", "tool-calling-modular", "tool-calling-best-of-n", "tool-calling-tree-search", "act", "react", "few-shot"],
     )
     parser.add_argument(
         "--temperature",
@@ -69,6 +69,25 @@ def parse_args() -> RunConfig:
     parser.add_argument("--shuffle", type=int, default=0)
     parser.add_argument("--user-strategy", type=str, default="llm", choices=[item.value for item in UserStrategy])
     parser.add_argument("--few-shot-displays-path", type=str, help="Path to a jsonlines file containing few shot displays")
+    parser.add_argument(
+        "--n",
+        type=int,
+        default=1,
+        help="Number of completions to sample from the model",
+    )
+    parser.add_argument(
+        "--top-logprobs",
+        type=int,
+        default=0,
+        help="Number of top logprobs to sample from the model",
+    )
+    parser.add_argument(
+        "--best-of-n-criterion",
+        type=str,
+        default="self_certainty",
+        choices=["self_certainty", "perplexity"],
+        help="Criterion to select the best response from the n completions",
+    )
     args = parser.parse_args()
     print(args)
     return RunConfig(
@@ -90,6 +109,9 @@ def parse_args() -> RunConfig:
         shuffle=args.shuffle,
         user_strategy=args.user_strategy,
         few_shot_displays_path=args.few_shot_displays_path,
+        n=args.n,
+        top_logprobs=args.top_logprobs,
+        best_of_n_criterion=args.best_of_n_criterion,
     )
 
 

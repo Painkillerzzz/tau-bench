@@ -35,6 +35,12 @@ class RewardResult(BaseModel):
     actions: List[Action]
 
 
+class ProcessResult(BaseModel):
+    result: List[Dict[str, Any]] | Action | Dict[str, Any]
+    message: Dict[str, Any]
+    cost: Optional[float] = None
+
+
 class SolveResult(BaseModel):
     reward: float
     messages: List[Dict[str, Any]]
@@ -67,6 +73,7 @@ class EnvRunResult(BaseModel):
     info: Dict[str, Any]
     traj: List[Dict[str, Any]]
     trial: int
+    cost: Optional[float] = None
 
 
 class RunConfig(BaseModel):
@@ -88,3 +95,6 @@ class RunConfig(BaseModel):
     shuffle: int = 0
     user_strategy: str = "llm"
     few_shot_displays_path: Optional[str] = None
+    n: int = 1
+    top_logprobs: int = 0
+    best_of_n_criterion: Optional[str] = None
