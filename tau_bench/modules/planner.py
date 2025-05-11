@@ -53,7 +53,7 @@ class Planner(Module):
 
         messages.append({"role": "user", "content": f"# Request: \n{request}"})
 
-        print(f"Knowledge: {json.dumps(knowledge)}")
+        # print(f"Knowledge: {json.dumps(knowledge)}")
 
         messages.append({"role": "user", "content": f"# Request: \n{request}"})
 

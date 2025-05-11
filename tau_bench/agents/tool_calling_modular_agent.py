@@ -53,7 +53,7 @@ class ToolCallingModularAgent(Agent):
         env_reset_res = env.reset(task_index=task_index)
         obs = env_reset_res.observation
 
-        print(f"Initial observation: {obs}")
+        # print(f"Initial observation: {obs}")
         # raise NotImplementedError("ToolCallingModularAgent does not support env.reset()")
         info = env_reset_res.info.model_dump()
         reward = 0.0
@@ -69,7 +69,7 @@ class ToolCallingModularAgent(Agent):
         messages.append(planner_result.message)
         total_cost += planner_result.cost
 
-        print(f"Initial plan: \n{json.dumps(self.plan, indent=2)}")
+        # print(f"Initial plan: \n{json.dumps(self.plan, indent=2)}")
 
         plan_step_idx = 0
 
@@ -79,15 +79,15 @@ class ToolCallingModularAgent(Agent):
                 self.plan += planner_result.result
                 total_cost += planner_result.cost
                 
-                print(f"Extended plan: \n{json.dumps(self.plan, indent=2)}")
+                # print(f"Extended plan: \n{json.dumps(self.plan, indent=2)}")
 
             current_step = self.plan[plan_step_idx]
             action_type = current_step["action_type"]
 
-            print(f"\n---\nCurrent step {plan_step_idx}: {json.dumps(current_step, indent=2)}")
+            # print(f"\n---\nCurrent step {plan_step_idx}: {json.dumps(current_step, indent=2)}")
 
             if action_type == "user_interaction":
-                print("\nUser interaction step")
+                # print("\nUser interaction step")
                 speaker: Speaker = self.modules["speaker"]
                 speaker_result = speaker.process(current_step["description"])
 
@@ -95,11 +95,11 @@ class ToolCallingModularAgent(Agent):
                 message = speaker_result.message
                 total_cost += speaker_result.cost
 
-                print(f"\nAction: {action}")
+                # print(f"\nAction: {action}")
 
                 env_response = env.step(action)
 
-                print(f"\nEnv response: {env_response.observation}")
+                # print(f"\nEnv response: {env_response.observation}")
 
                 messages.extend(
                     [
@@ -119,20 +119,20 @@ class ToolCallingModularAgent(Agent):
                 decision = rethinker_result.result
                 total_cost += rethinker_result.cost
 
-                print(f"\nRethinker decision: \n{json.dumps(decision, indent=2)}")
+                # print(f"\nRethinker decision: \n{json.dumps(decision, indent=2)}")
 
                 if decision["decision"] == "REPLAN":
                     planner_result = planner.process(obs, self.knowledge, decision) # TODO: replan input
                     self.plan = self.plan[:plan_step_idx] + planner_result.result
                     total_cost += planner_result.cost
-                    print(f"Replanned plan: \n{json.dumps(self.plan, indent=2)}")
+                    # print(f"Replanned plan: \n{json.dumps(self.plan, indent=2)}")
                 else:
                     plan_step_idx += 1
                 # else:
                 #     raise ValueError(f"Unexpected rethinker decision: {decision}")
 
             elif action_type == "tool_use":
-                print("\nTool use step")
+                # print("\nTool use step")
                 router: Router = self.modules["router"]
                 router_result = router.process(current_step["description"], self.knowledge)
                 
@@ -140,11 +140,11 @@ class ToolCallingModularAgent(Agent):
                 message = router_result.message
                 total_cost += router_result.cost
 
-                print(f"\nAction: {action}")
+                # print(f"\nAction: {action}")
 
                 env_response = env.step(action)
 
-                print(f"\nEnv response: {json.dumps(env_response.observation, indent=2)}")
+                # print(f"\nEnv response: {json.dumps(env_response.observation, indent=2)}")
 
                 messages.extend(
                     [
@@ -165,7 +165,7 @@ class ToolCallingModularAgent(Agent):
                 }
 
                 if "Error" in env_response.observation:
-                    print("\n---\nTool error step")
+                    # print("\n---\nTool error step")
                     rethinker: Rethinker = self.modules["rethinker"]
                     rethinker_result = rethinker.process(plan_step=current_step, result=new_knowledge)
 
@@ -173,13 +173,13 @@ class ToolCallingModularAgent(Agent):
                     messages.append(rethinker_result.message)
                     total_cost += rethinker_result.cost
 
-                    print(f"\nRethinker decision: {json.dumps(decision, indent=2)}")
+                    # print(f"\nRethinker decision: {json.dumps(decision, indent=2)}")
 
                     if decision["decision"] == "REPLAN":
                         planner_result = planner.process(obs, self.knowledge, decision)
                         self.plan = self.plan[:plan_step_idx] + planner_result.result
                         total_cost += planner_result.cost
-                        print(f"Replanned plan: \n{json.dumps(self.plan, indent=2)}")
+                        # print(f"Replanned plan: \n{json.dumps(self.plan, indent=2)}")
                     else:
                         plan_step_idx += 1
                 else:

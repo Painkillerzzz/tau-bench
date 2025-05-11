@@ -95,6 +95,3 @@ class RunConfig(BaseModel):
     shuffle: int = 0
     user_strategy: str = "llm"
     few_shot_displays_path: Optional[str] = None
-    n: int = 1
-    top_logprobs: int = 0
-    best_of_n_criterion: Optional[str] = None

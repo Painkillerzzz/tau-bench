@@ -21,13 +21,9 @@ def run(config: RunConfig) -> List[EnvRunResult]:
     assert config.env in ["retail", "airline"], "Only retail and airline envs are supported"
     assert config.model_provider in provider_list, "Invalid model provider"
     assert config.user_model_provider in provider_list, "Invalid user model provider"
-    assert config.agent_strategy in ["tool-calling", "tool-calling-modular", "tool-calling-best-of-n", "tool-calling-tree-search", "act", "react", "few-shot"], "Invalid agent strategy"
+    assert config.agent_strategy in ["tool-calling", "tool-calling-modular", "act", "react", "few-shot"], "Invalid agent strategy"
     assert config.task_split in ["train", "test", "dev"], "Invalid task split"
     assert config.user_strategy in [item.value for item in UserStrategy], "Invalid user strategy"
-    assert config.best_of_n_criterion in [
-        "perplexity",
-        "self_certainty",
-    ], "Invalid best of n criterion"
 
     random.seed(config.seed)
     time_str = datetime.now().strftime("%m%d%H%M%S")
@@ -141,7 +137,7 @@ def agent_factory(
             provider=config.model_provider,
             temperature=config.temperature,
         )
-    if config.agent_strategy == "tool-calling-modular":
+    elif config.agent_strategy == "tool-calling-modular":
         # native tool calling
         from tau_bench.agents.tool_calling_modular_agent import ToolCallingModularAgent
 
@@ -171,34 +167,6 @@ def agent_factory(
             tools_info=tools_info,
             wiki=wiki,
             modules_info=modules_info,
-        )
-    if config.agent_strategy == "tool-calling-best-of-n":
-        # tool calling with best of n
-        from tau_bench.agents.tool_calling_best_of_n_agent import ToolCallingBestOfNAgent
-
-        return ToolCallingBestOfNAgent(
-            tools_info=tools_info,
-            wiki=wiki,
-            model=config.model,
-            provider=config.model_provider,
-            temperature=config.temperature,
-            n=config.n,
-            top_logprobs=config.top_logprobs,
-            best_of_n_criterion=config.best_of_n_criterion,
-        )
-    if config.agent_strategy == "tool-calling-tree-search":
-        # tool calling with tree search
-        from tau_bench.agents.tool_calling_tree_search_agent import ToolCallingTreeSearchAgent
-
-        return ToolCallingTreeSearchAgent(
-            tools_info=tools_info,
-            wiki=wiki,
-            model=config.model,
-            provider=config.model_provider,
-            temperature=config.temperature,
-            max_w=config.n,
-            top_logprobs=config.top_logprobs,
-            best_of_n_criterion=config.best_of_n_criterion,
         )
     elif config.agent_strategy == "act":
         # `act` from https://arxiv.org/abs/2210.03629
